@@ -1,0 +1,4 @@
+#!/bin/bash
+
+stty -F /dev/arduino-uno 38400 raw -hupcl
+echo "$1" > /dev/arduino-uno
