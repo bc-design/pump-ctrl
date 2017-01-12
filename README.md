@@ -11,7 +11,7 @@ Arduino-based controller for a Watson-Marlow 323U peristaltic pump
   + `d,50`: set the duty cycle (on time vs. off time) to 50%
   + `c,60000`: set the cycle time (total time of one on-and-off cycle) to 60,000 milliseconds = 10 minutes
 
-When the code is initially run, the system is paused: pumpSpeed = 0 and pumpRunning = false.  To get the pump to operate, in addition to setting a pumpSpeed with `s,###` you'll need to resume operation with `r`.
+When the code is initially run, the system is paused: pumpSpeed = 0 and pumpRunning = false.  The control loop only runs `if (pumpRunning)`, so in addition to setting a pumpSpeed with `s,###` you'll need to resume operation with `r`.
 
 ### Tools
 
