@@ -1,10 +1,12 @@
 char junk;
 
 #include <SPI.h> // #include <SPI.h>
-#include <McpDigitalPot.h> // "lib/mcpdigitalpot/McpDigitalPot.h" //#include <McpDigitalPot.h>
+//#include "libraries/McpDigitalPot/McpDigitalPot.h" 
+#include <McpDigitalPot.h>
 
 // set the serial connection baud rate
 const long SERIAL_BAUD = 38400; // 4800,9600,14400,19200,38400,57600,115200,0.5M,1.0M,2.0M
+const String FIRMWARE_VERSION = "Running Arduino pumpctrl.ino, ver. 2017-01-13";
 
 // this pin turns on and off the pump
 const int CTRL_PIN = 3;
@@ -15,7 +17,11 @@ int loopDelay = 100;
 bool cycleStopped = false;
 const bool PUMP_ON = HIGH;
 const bool PUMP_OFF = LOW;
-bool pumpRunning = false;
+bool ctrlOn = false;
+
+int setPumpSpeed;
+int setPumpDuty;
+float setPumpInterval;
 
 unsigned long currentMillis = 0;
 unsigned long previousMillis = 0;
@@ -82,6 +88,17 @@ void setup_pots() {
 void setup_serial() {
   // initialize serial communication at specified baudrate
   Serial.begin(SERIAL_BAUD);
+  // print the version of version of this program
+  Serial.println();
+  Serial.println(FIRMWARE_VERSION);
+  Serial.println();
+  Serial.println("Controller starts with pumpSpeed = 0;");
+  Serial.println("send e.g. `s,50` to set pumpSpeed to 50%");
+  Serial.println("Controller starts paused with ctrlOn = false;");
+  Serial.println("send `r` to start the control loop");
+  Serial.println("set pump duty cycle with e.g. `d,50` for 50%");
+  Serial.println("set total on+off cycle time with e.g. `c,60000` for 1 minute");
+  Serial.println();
   pinMode(CTRL_PIN, OUTPUT);
 }
 
@@ -111,52 +128,47 @@ void get_serial() {
 
 // process inputs recieved via serial connection
 void manual_input(String input) {
+  Serial.println();
   Serial.print(millis());
   Serial.print("; manual input: ");
-  Serial.println(input);
+  Serial.print(input);
   switch( input.charAt(0) ) {
     case 'p' :
       // you sent PAUSE
       //myRun = false;
       //stop_pump();
-      pumpRunning = false;
+      ctrlOn = false;
       Serial.print(millis());
-      Serial.println("; pump paused");
+      Serial.println("; pump control paused");
       break;
 
     case 'r' :
       // you sent RESUME
       //myRun = true;
       //start_pump();
-      pumpRunning = true;
+      ctrlOn = true;
       Serial.print(millis());
-      Serial.println("; pump resumed");
+      Serial.println("; pump control resumed");
       break;
 
     case 's' :
       // you sent d,###
       //myInterval = input.substring(2).toInt();
       //Serial.println("delay set");
-      pumpSpeed = input.substring(2).toInt();
-      set_pumpspeed(pumpSpeed);
+      setPumpSpeed = input.substring(2).toInt();
+      set_pumpspeed(setPumpSpeed);
       break;
 
     case 'd' :
       // you sent d,###
-      dutyCycle = input.substring(2).toFloat();
-      Serial.print(millis());
-      Serial.print("; duty cycle set: ");
-      Serial.print(dutyCycle);
-      Serial.println(" %");
+      setPumpDuty = input.substring(2).toInt();
+      set_pumpduty(setPumpDuty);
       break;
 
     case 'c' :
       // you sent c,###
-      cycleInterval = input.substring(2).toFloat();
-      Serial.print(millis());
-      Serial.print("; cycle interval set: ");
-      Serial.print(cycleInterval);
-      Serial.println(" milliseconds");
+      setPumpInterval = input.substring(2).toFloat();
+      set_pumpcycleinterval(setPumpInterval);
       break;
       }
   }
@@ -168,6 +180,27 @@ void set_pumpspeed(int pumpSpeed) {
   Serial.print("; pump speed set to ");
   Serial.print(pumpSpeed);
   Serial.println(" % of maximum");
+  Serial.println();
+  }
+
+// set the pump duty cycle
+void set_pumpduty(int pumpDuty) {
+  dutyCycle = pumpDuty;
+  Serial.print(millis());
+  Serial.print("; duty cycle set: ");
+  Serial.print(dutyCycle);
+  Serial.println(" %");
+  Serial.println();
+  }
+
+// set the pump on+off cycle time
+void set_pumpcycleinterval(int pumpCycleInterval) {
+  cycleInterval = pumpCycleInterval;
+  Serial.print(millis());
+  Serial.print("; cycle interval set: ");
+  Serial.print(cycleInterval);
+  Serial.println(" milliseconds");
+  Serial.println();
   }
 
 void start_pump() {
@@ -191,7 +224,7 @@ void setup() {
 
 void loop() {
   currentMillis = millis();
-  if (pumpRunning) {
+  if (ctrlOn) {
 
     if (cycleStopped == false && 
         currentMillis - previousMillis >= cycleInterval*(dutyCycle/100)) {
