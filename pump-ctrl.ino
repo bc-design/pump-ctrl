@@ -167,7 +167,7 @@ void manual_input(String input) {
 
     case 'c' :
       // you sent c,###
-      setPumpInterval = input.substring(2).toFloat();
+      setPumpInterval = input.substring(2).toInt();
       set_pumpcycleinterval(setPumpInterval);
       break;
       }
@@ -194,7 +194,7 @@ void set_pumpduty(int pumpDuty) {
   }
 
 // set the pump on+off cycle time
-void set_pumpcycleinterval(int pumpCycleInterval) {
+void set_pumpcycleinterval(unsigned long pumpCycleInterval) {
   cycleInterval = pumpCycleInterval;
   Serial.print(millis());
   Serial.print("; cycle interval set: ");
